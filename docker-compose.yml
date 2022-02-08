@@ -12,8 +12,10 @@ services:
       - '3306'
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: 12345
       MYSQL_DATABASE: db_auth
+      MYSQL_ROOT_PASSWORD: 12345
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 12345
     volumes:
       - db_data:/var/lib/mysql
     cap_add:
@@ -29,7 +31,8 @@ services:
       - 8080:8080
 
   auth_service:
-    build: ./auth
+    image: tiago19fp/auth_service
+    #build: ./auth
     command: npm start
     container_name: auth_container
     restart: always
@@ -45,33 +48,20 @@ services:
       - adminer
     
   http_service:
-    build: ./http
+    image: tiago19fp/http_service
     command: npm start
     container_name: http_container
     restart: always
     networks:
-      - db_network
       - auth_network
     ports:
       - "5001:5001"
     expose:
       - "5001"
     depends_on:
-      - mysql-db
-      - adminer
-  # auth:
-  #   build: 
-  #     context: "./auth"
-  #     dockerfile: Dockerfile
-  #   container_name: auth_container
-  #   command: npm start
-  #   ports: 
-  #     - "5000:5000"
-  #   volumes: 
-  #     - .:/auth
-  #     - '/auth/node_modules'
-  #   depends_on: 
-  #     - mysql-db
+      - auth_service
+    volumes:
+      - http_data:/http
 
 networks:
   db_network:  
@@ -79,5 +69,6 @@ networks:
 
 volumes:
   db_data:
+  http_data:
 
     

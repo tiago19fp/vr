@@ -1,7 +1,7 @@
 const mysql = require("mysql");
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const {promisify} = require('util');
+const { promisify } = require('util');
 
 const db = mysql.createConnection({
     host: process.env.DATABASE_HOST,
@@ -22,17 +22,33 @@ exports.login = async (req, res) => {
 
         db.query('SELECT * FROM user WHERE email = ?', [email], async (error, results) => {
             console.log(results);
-            if (!results || !(await bcrypt.compare(password, results[0].password))) {
+            console.log(results.length);
+            if(results.length == 0){
                 res.status(401).render('login', {
                     message: 'Email or Password wrong'
                 })
-            } else {
+            } 
+            else if (!results || !(await bcrypt.compare(password, results[0].password))) {
+                res.status(401).render('login', {
+                    message: 'Email or Password wrong'
+                })
+            }
+            else {
                 const id = results[0].id;
-
-                const token = jwt.sign({ id }, process.env.JWT_SECRET, {
-                    expiresIn: process.env.JWT_EXPIRES_IN
-                });
-
+                const name = results[0].name;
+                const email = results[0].email;
+                const role = results[0].role;
+                if (results[0].role == 'admin') {
+                    console.log("admin")
+                    token = jwt.sign({ id, name, email, password, role }, process.env.JWT_SECRET_ADMIN, {
+                        expiresIn: process.env.JWT_EXPIRES_IN
+                    });
+                } else {
+                    console.log("user")
+                    token = jwt.sign({ id, name, email, password, role }, process.env.JWT_SECRET, {
+                        expiresIn: process.env.JWT_EXPIRES_IN
+                    });
+                }
                 console.log("The token is: " + token)
 
                 const cookieOpitons = {
@@ -43,7 +59,11 @@ exports.login = async (req, res) => {
                 }
 
                 res.cookie('jwt', token, cookieOpitons);
-                res.status(200).redirect('http://localhost:5001/profile');
+                if (role == 'admin') {
+                    res.status(200).redirect('http://localhost:5001/admin');
+                } else {
+                    res.status(200).redirect('http://localhost:5001/profile');
+                }
             }
 
         })
@@ -74,32 +94,44 @@ exports.register = (req, res) => {
 
         let hashedPassword = await bcrypt.hash(password, 8);
         console.log(hashedPassword);
+        if (name != "admin") {
+            db.query('INSERT INTO user SET ?', { name: name, email: email, password: hashedPassword, role: "user" }, (error, results) => {
+                if (error) {
+                    console.log(error);
+                } else {
+                    return res.render('register', {
+                        message: 'User registered'
+                    });
+                }
+            })
+        } else {
+            db.query('INSERT INTO user SET ?', { name: name, email: email, password: hashedPassword, role: "admin" }, (error, results) => {
+                if (error) {
+                    console.log(error);
+                } else {
+                    return res.render('register', {
+                        message: 'User registered'
+                    });
+                }
+            })
 
-        db.query('INSERT INTO user SET ?', { name: name, email: email, password: hashedPassword, role: "normal" }, (error, results) => {
-            if (error) {
-                console.log(error);
-            } else {
-                return res.render('register', {
-                    message: 'User registered'
-                });
-            }
-        })
+        }
     });
 }
 
 exports.isLoggedIn = async (req, res, next) => {
     console.log(req.cookies);
 
-    if(req.cookies.jwt){
+    if (req.cookies.jwt) {
         try {
-            const decoded = await promisify(jwt.verify)(req.cookies.jwt,process.env.JWT_SECRET);
+            const decoded = await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET);
 
             console.log(decoded);
 
-            db.query('SELECT * FROM user WHERE id = ?', [decoded.id], (error,result)=>{
+            db.query('SELECT * FROM user WHERE id = ?', [decoded.id], (error, result) => {
                 console.log(result);
 
-                if(!result){
+                if (!result) {
                     return next();
                 }
 
@@ -110,13 +142,13 @@ exports.isLoggedIn = async (req, res, next) => {
             console.log(error)
             return next();
         }
-    }else{
+    } else {
         next();
     }
 }
 exports.logout = async (req, res, next) => {
-    res.cookie('jwt', 'logout',{
-        expires: new Date(Date.now() + 2*1000),
+    res.cookie('jwt', 'logout', {
+        expires: new Date(Date.now() + 2 * 1000),
         httpOnly: true
     });
     res.status(200).redirect('/');

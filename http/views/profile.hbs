@@ -12,9 +12,8 @@
 
 <body>
     <nav>
-        <h4>TP2 VR</h4>
+        <h4>TP2-Virtualizao de Redes</h4>
         <ul>
-            <li><a href="/profile">Profile</a></li>
             <li><a href="/auth/logout">Logout</a></li>
         </ul>
     </nav>
@@ -29,7 +28,6 @@
                 </div>
                 <div class="card-body">
                     <h5 class="card-title"> {{user.name}}</h5>
-                    <p class="card-text">Informacao do user</p>
                     <a href="#" class="btn btn-primary">{{user.email}}</a>
 
                 </div>
@@ -41,9 +39,8 @@
                         Profile Page
                     </div>
                     <div class="card-body">
-                        <h5 class="card-title"> Hey {{user.name}}</h5>
-                        <p class="card-text"> Este e o teu perfil maninho</p>
-                        <a href="#" class="btn btn-primary">Go Somewhere</a>
+                        <h5 class="card-title">{{user.name}}</h5>
+                        <p class="card-text"> Your id is {{user.id}}</p>
                     </div>
                     <div class="card-footer text-muted">
                         TP2-Virtualizao de Redes
